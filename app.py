@@ -15,12 +15,110 @@ import ijson
 import openai
 import urllib.parse
 import urllib.request
+import urllib.error
+import tempfile
 from bs4 import BeautifulSoup
 from streamlit_searchbox import st_searchbox
 
 
 if 'active_app' not in st.session_state:
     st.session_state['active_app'] = 'drug'
+
+
+DEFAULT_COMPACT_DB_URL = "https://3dpharma.eu/comprehensive_drug_database_compact"
+
+
+def _looks_like_html_bytes(data: bytes) -> bool:
+    stripped = (data or b"").lstrip()
+    return stripped.startswith(b"<") or stripped.lower().startswith(b"<!doctype html")
+
+
+def _download_to_file(url: str, dest_path: str, timeout_seconds: int = 60) -> None:
+    """Download a large file via streaming and write atomically to dest_path.
+
+    Writes to a temporary file and then replaces dest_path.
+    """
+    os.makedirs(os.path.dirname(dest_path) or ".", exist_ok=True)
+
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "3DPharma/1.0 (+https://3dpharma.eu)",
+            "Accept": "application/json, text/plain, */*",
+        },
+        method="GET",
+    )
+
+    with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+        content_type = (resp.headers.get("Content-Type") or "").lower()
+        total = resp.headers.get("Content-Length")
+        total_bytes = int(total) if total and total.isdigit() else None
+
+        tmp_dir = os.path.dirname(dest_path) or "."
+        with tempfile.NamedTemporaryFile(delete=False, dir=tmp_dir, prefix="db_", suffix=".tmp") as tmp:
+            tmp_path = tmp.name
+            bytes_written = 0
+            first_chunk = b""
+            while True:
+                chunk = resp.read(1024 * 1024)  # 1MB
+                if not chunk:
+                    break
+                if not first_chunk:
+                    first_chunk = chunk[:512]
+                tmp.write(chunk)
+                bytes_written += len(chunk)
+
+            tmp.flush()
+
+    # Basic sanity checks to avoid saving an HTML error page as the DB.
+    if bytes_written < 1024 * 1024:
+        # Very small payload is almost certainly not the DB.
+        with open(tmp_path, "rb") as f:
+            head = f.read(1024)
+        os.unlink(tmp_path)
+        raise ValueError(
+            f"Download too small ({bytes_written} bytes). "
+            f"Content-Type={content_type!r}. Head starts with: {head[:120]!r}"
+        )
+
+    if _looks_like_html_bytes(first_chunk):
+        os.unlink(tmp_path)
+        raise ValueError("Downloaded content looks like HTML, not JSON. The URL may have returned an error page.")
+
+    # Optional: quick JSON 'starts with' check (many JSON files start with '{' or '[')
+    if first_chunk.lstrip()[:1] not in (b"{", b"["):
+        # Not fatal for all cases, but helps catch bad downloads.
+        os.unlink(tmp_path)
+        raise ValueError("Downloaded content does not appear to be JSON (missing '{'/'[' at start).")
+
+    os.replace(tmp_path, dest_path)
+
+
+def ensure_compact_database_present(db_path: str) -> bool:
+    """Ensure the compact database exists locally, downloading it if missing.
+
+    Returns True if file is present after this call, False otherwise.
+    """
+    if os.path.exists(db_path):
+        return True
+
+    auto_download = os.getenv("AUTO_DOWNLOAD_DRUG_DB", "true").lower() not in ("0", "false", "no")
+    if not auto_download:
+        return False
+
+    url = os.getenv("DRUG_DB_URL", DEFAULT_COMPACT_DB_URL).strip()
+    if not url:
+        return False
+
+    print(f"Compact database not found at {db_path}. Downloading from {url} ...")
+    try:
+        _download_to_file(url, db_path, timeout_seconds=120)
+        size_mb = os.path.getsize(db_path) / (1024 ** 2)
+        print(f"Downloaded compact database to {db_path} ({size_mb:.1f} MB)")
+        return True
+    except (urllib.error.URLError, urllib.error.HTTPError, ValueError, OSError) as exc:
+        print(f"Warning: failed to download compact database: {exc}")
+        return False
 
 
 def _rerun_app():
@@ -66,13 +164,23 @@ class ComprehensiveDrugQuery:
     ):
         # Resolve database path (use compact version if available)
         preferred_db = os.getenv('DRUG_DB_FILE', db_file)
+
+        # If the preferred DB is the compact DB and it's missing, attempt to download it.
+        if not os.path.exists(preferred_db):
+            base = os.path.basename(preferred_db)
+            if base == 'comprehensive_drug_database_compact.json':
+                ensure_compact_database_present(preferred_db)
+
+        # If still missing, fall back to the full database (if present).
         if not os.path.exists(preferred_db):
             preferred_db = 'comprehensive_drug_database.json'
-        
+
         if not os.path.exists(preferred_db):
             raise FileNotFoundError(
-                f"Database file not found. Expected one of: {db_file} or comprehensive_drug_database.json. "
-                f"Please ensure the database file is available in the working directory."
+                "Database file not found. Tried local files: "
+                f"{db_file!r} and 'comprehensive_drug_database.json'. "
+                f"If you want auto-download, set DRUG_DB_URL (default {DEFAULT_COMPACT_DB_URL}) "
+                "and ensure the environment allows outbound HTTPS."
             )
         
         self.db_file = preferred_db

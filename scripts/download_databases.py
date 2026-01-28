@@ -1,8 +1,8 @@
-"""
-Download database files from external URLs (e.g., Google Drive) during build.
+"""Download database files from external URLs during build.
 
 Set COMPACT_DATABASE_URL / DATABASE_URL env vars to download the files.
-Defaults to the provided Google Drive link for the compact DB.
+Defaults to a direct HTTPS endpoint for the compact DB. Google Drive links are
+also supported if the optional `gdown` dependency is installed.
 """
 
 from __future__ import annotations
@@ -12,23 +12,41 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-import gdown
+import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPACT_DB = ROOT / "comprehensive_drug_database_compact.json"
 FULL_DB = ROOT / "comprehensive_drug_database.json"
 
-# Default compact DB URL provided by user
-DEFAULT_COMPACT_URL = "https://drive.google.com/file/d/12o_cdObA01lxXJMY8LjCqlPVrXF56bZF/view?usp=drive_link"
+# Default compact DB URL (direct HTTPS endpoint)
+DEFAULT_COMPACT_URL = "https://3dpharma.eu/comprehensive_drug_database_compact"
 
 
 def download_file(url: str, target: Path) -> bool:
-    """Download a file (supports Google Drive links via gdown)."""
+    """Download a file (supports Google Drive links if `gdown` is installed)."""
     try:
         if target.exists():
             target.unlink()
         target.parent.mkdir(parents=True, exist_ok=True)
-        gdown.download(url, str(target), quiet=False, fuzzy=True)
+
+        if "drive.google.com" in url or "docs.google.com" in url:
+            try:
+                import gdown  # optional
+            except ModuleNotFoundError as exc:
+                raise ModuleNotFoundError(
+                    "gdown is required to download Google Drive URLs. "
+                    "Install it or use a direct HTTPS URL."
+                ) from exc
+            gdown.download(url, str(target), quiet=False, fuzzy=True)
+        else:
+            # Direct HTTPS download
+            with requests.get(url, stream=True, timeout=120) as resp:
+                resp.raise_for_status()
+                with open(target, "wb") as f:
+                    for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            f.write(chunk)
+
         size_mb = target.stat().st_size / (1024 ** 2)
         if size_mb < 5 or _looks_like_html(target):
             target.unlink(missing_ok=True)
