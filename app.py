@@ -957,6 +957,9 @@ def main():
     # Custom CSS
     st.markdown("""
         <style>
+        .stToolbarActions{
+            display: none !important;
+        }
         .stAlert > div {
             padding: 0.2rem;
         }
