@@ -136,14 +136,16 @@ def inject_google_analytics() -> None:
     Configure via Streamlit secrets (preferred): GA_MEASUREMENT_ID
     or environment variable: GA_MEASUREMENT_ID
     """
-    ga_id = (st.secrets.get("GA_MEASUREMENT_ID", "") or os.getenv("GA_MEASUREMENT_ID", "")).strip()
-    if not ga_id:
-        return
-
+    # ga_id = (st.secrets.get("GA_MEASUREMENT_ID", "") or os.getenv("GA_MEASUREMENT_ID", "")).strip()
+    # if not ga_id:
+    #     return
+    
     # Streamlit reruns the script frequently; inject only once per session.
-    if st.session_state.get("_ga_injected"):
-        return
+    # if st.session_state.get("_ga_injected"):
+    #     return
 
+    ga_id = "G-NXXCJN7Y1Z"
+    
     components.html(
         f"""
         <!-- Google tag (gtag.js) -->
