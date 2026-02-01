@@ -4,6 +4,7 @@ Drug Compatibility Checker - Streamlit App
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import json
 import os
 import re
@@ -127,6 +128,37 @@ def _rerun_app():
         st.experimental_rerun()
     else:
         st.rerun()
+
+
+def inject_google_analytics() -> None:
+    """Inject GA4 (gtag.js) into the app once per browser session.
+
+    Configure via Streamlit secrets (preferred): GA_MEASUREMENT_ID
+    or environment variable: GA_MEASUREMENT_ID
+    """
+    ga_id = (st.secrets.get("GA_MEASUREMENT_ID", "") or os.getenv("GA_MEASUREMENT_ID", "")).strip()
+    if not ga_id:
+        return
+
+    # Streamlit reruns the script frequently; inject only once per session.
+    if st.session_state.get("_ga_injected"):
+        return
+
+    components.html(
+        f"""
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={ga_id}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){{dataLayer.push(arguments);}}
+          gtag('js', new Date());
+          gtag('config', '{ga_id}', {{ 'anonymize_ip': true }});
+        </script>
+        """,
+        height=0,
+    )
+
+    st.session_state["_ga_injected"] = True
 
 
 def render_athero_app():
@@ -953,6 +985,8 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded"
     )
+
+    inject_google_analytics()
     
     # Custom CSS
     st.markdown("""
