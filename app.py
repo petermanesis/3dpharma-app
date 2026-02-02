@@ -137,14 +137,14 @@ def inject_google_analytics() -> None:
     or environment variable: GA_MEASUREMENT_ID
     """
     ga_id = (st.secrets.get("GA_MEASUREMENT_ID", "") or os.getenv("GA_MEASUREMENT_ID", "")).strip()
+    # Fallback to the app's default GA4 property when no configuration is provided.
+    # (Streamlit reruns frequently; we still guard via session_state below.)
     if not ga_id:
-        return
+        ga_id = "G-NXXCJN7Y1Z"
     
     # Streamlit reruns the script frequently; inject only once per session.
     if st.session_state.get("_ga_injected"):
         return
-
-    #ga_id = "G-NXXCJN7Y1Z"
 
     components.html(
         f"""
@@ -1022,16 +1022,6 @@ def main():
         }
         
         </style>
-
-        <!-- Google Custom tag by Petros Manesis (gtag.js) -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-NXXCJN7Y1Z"></script>
-        <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-NXXCJN7Y1Z');
-        </script>
     """, unsafe_allow_html=True)
     
     # Sidebar - How it works / toggle
