@@ -988,7 +988,7 @@ def main():
         initial_sidebar_state="expanded"
     )
 
-    # inject_google_analytics()
+    inject_google_analytics()
     
     # Custom CSS
     st.markdown("""
