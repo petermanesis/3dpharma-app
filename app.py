@@ -1022,6 +1022,16 @@ def main():
         }
         
         </style>
+
+        <!-- Google Custom tag by Petros Manesis (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-NXXCJN7Y1Z"></script>
+        <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-NXXCJN7Y1Z');
+        </script>
     """, unsafe_allow_html=True)
     
     # Sidebar - How it works / toggle
