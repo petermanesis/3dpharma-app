@@ -130,69 +130,6 @@ def _rerun_app():
         st.rerun()
 
 
-def inject_umami() -> None:
-    """Inject Umami analytics into the app once per browser session.
-
-    Configure via Streamlit secrets (preferred):
-      - UMAMI_SRC (e.g. https://umami.example.com/script.js)
-      - UMAMI_WEBSITE_ID (UUID from Umami)
-
-    Or environment variables with the same names.
-    """
-    umami_src = (st.secrets.get("UMAMI_SRC", "") or os.getenv("UMAMI_SRC", "")).strip()
-    website_id = (st.secrets.get("UMAMI_WEBSITE_ID", "") or os.getenv("UMAMI_WEBSITE_ID", "")).strip()
-    if not umami_src or not website_id:
-        return
-
-    # Streamlit reruns the script frequently; inject only once per session.
-    if st.session_state.get("_umami_injected"):
-        return
-
-    components.html(
-        f"""
-                <script>
-                    (function() {{
-                        const src = {json.dumps(umami_src)};
-                        const websiteId = {json.dumps(website_id)};
-                        const injectedKey = "__umami_injected";
-
-                        function injectInto(doc) {{
-                            if (!doc) return false;
-                            const existing = doc.querySelector('script[src="' + src + '"][data-website-id="' + websiteId + '"]');
-                            if (existing) return true;
-                            const s = doc.createElement('script');
-                            s.defer = true;
-                            s.src = src;
-                            s.setAttribute('data-website-id', websiteId);
-                            (doc.head || doc.documentElement).appendChild(s);
-                            return true;
-                        }}
-
-                        try {{
-                            // Prefer injecting into the parent Streamlit page so Umami tracks the real URL.
-                            const w = window.parent || window;
-                            if (w && w[injectedKey]) return;
-                            const ok = injectInto(w.document);
-                            if (ok) w[injectedKey] = true;
-                        }} catch (e) {{
-                            // Fallback: inject inside this iframe if parent access is restricted.
-                            try {{
-                                if (window[injectedKey]) return;
-                                const ok2 = injectInto(document);
-                                if (ok2) window[injectedKey] = true;
-                            }} catch (e2) {{
-                                // no-op
-                            }}
-                        }}
-                    }})();
-                </script>
-        """,
-        height=0,
-    )
-
-    st.session_state["_umami_injected"] = True
-
-
 def render_athero_app():
     """Embed the Athero app inside this Streamlit session."""
     os.environ["ATHERO_EMBEDDED"] = "1"
@@ -1017,8 +954,6 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded"
     )
-
-    inject_umami()
     
     # Custom CSS
     st.markdown("""
