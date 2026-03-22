@@ -108,7 +108,8 @@ try:
         from agents.qa_agent import AtheroQAAgent
         from agents.publication_analyzer import PublicationAnalyzer
         from agents.synthesis_agent import ResearchSynthesisAgent
-        from render_agents import render_qa_page, render_publication_analysis_page, render_synthesis_page
+        from agents.literature_review_agent import LiteratureReviewAgent
+        from render_agents import render_qa_page, render_publication_analysis_page, render_synthesis_page, render_literature_review_page
         
         # Load environment variables from .env file
         load_dotenv()
@@ -330,6 +331,7 @@ def render_sidebar():
             "🤖 AI Q&A",
             "📝 Publication Analysis",
             "🔬 Research Synthesis",
+            "📚 Literature Review",
             "📖 Publications",
             "⚙️ Settings",
         ]
@@ -3166,6 +3168,25 @@ def main():
                - It should contain `agents/` and `render_agents.py`
             
             3. **Configure API keys in `.env` file**
+            """)
+    elif "Literature Review" in page:
+        if AGENTS_AVAILABLE:
+            render_literature_review_page(all_data)
+        else:
+            st.warning("⚠️ AI Agents not available")
+            if AGENTS_ERROR:
+                st.error(f"**Error:** {AGENTS_ERROR}")
+            st.info("""
+            **To enable AI Agents:**
+            
+            1. **Install dependencies:**
+               ```bash
+               pip install openai anthropic python-dotenv
+               ```
+            
+            2. **Configure API keys in `.env` file:**
+               - `OPENAI_API_KEY=your_key`
+               - `ANTHROPIC_API_KEY=your_key`
             """)
     elif "Publications" in page:
         render_publications_page(filtered_data)

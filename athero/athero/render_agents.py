@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Render functions for AI Agent pages
-Q&A, Publication Analysis, and Research Synthesis for atherosclerosis research
+Q&A, Publication Analysis, Research Synthesis, and Literature Review for atherosclerosis research
 """
 
 import streamlit as st
@@ -18,9 +18,17 @@ try:
     from agents.qa_agent import AtheroQAAgent
     from agents.publication_analyzer import PublicationAnalyzer
     from agents.synthesis_agent import ResearchSynthesisAgent
+    from agents.literature_review_agent import LiteratureReviewAgent
     AGENTS_AVAILABLE = True
 except ImportError:
     AGENTS_AVAILABLE = False
+
+# Literature Review Agent availability
+try:
+    from agents.literature_review_agent import LiteratureReviewAgent
+    LITERATURE_AGENT_AVAILABLE = True
+except ImportError:
+    LITERATURE_AGENT_AVAILABLE = False
 
 try:
     from agents.qa_with_metrics import TrustworthyQAAgent
@@ -330,3 +338,248 @@ def render_synthesis_page(all_data: List[Dict[str, Any]]):
             if abstract:
                 st.markdown(f"**Abstract**: {abstract[:500]}...")
 
+
+def render_literature_review_page(all_data: List[Dict[str, Any]]):
+    """Render Literature Review Agent page"""
+    st.header("📚 Literature Review Agent")
+    
+    st.markdown("""
+    Perform systematic literature reviews on specific topics with AI-powered analysis.
+    
+    **Capabilities:**
+    - Systematic literature review on any topic
+    - Research gap identification
+    - Treatment comparison analysis
+    - Trend analysis across years
+    - Evidence synthesis with citations
+    """)
+    
+    if not LITERATURE_AGENT_AVAILABLE:
+        st.warning("⚠️ Literature Review Agent not available. Install required packages:")
+        st.code("pip install openai anthropic", language="bash")
+        return
+    
+    # Review type tabs
+    review_mode = st.radio(
+        "Select Analysis Type:",
+        ["📖 Literature Review", "🔍 Research Gaps", "⚖️ Treatment Comparison"],
+        horizontal=True
+    )
+    
+    st.markdown("---")
+    
+    if review_mode == "📖 Literature Review":
+        _render_literature_review_section(all_data)
+    elif review_mode == "🔍 Research Gaps":
+        _render_research_gaps_section(all_data)
+    else:
+        _render_treatment_comparison_section(all_data)
+
+
+def _render_literature_review_section(all_data: List[Dict[str, Any]]):
+    """Render the literature review section"""
+    st.markdown("### 📖 Systematic Literature Review")
+    
+    topic = st.text_input(
+        "Enter research topic:",
+        placeholder="e.g., PCSK9 inhibitors in familial hypercholesterolemia",
+        help="Enter a specific research topic to review"
+    )
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        review_type = st.selectbox(
+            "Review Type:",
+            ["comprehensive", "therapeutic", "mechanistic", "clinical"],
+            format_func=lambda x: {
+                "comprehensive": "📊 Comprehensive Overview",
+                "therapeutic": "💊 Therapeutic Focus",
+                "mechanistic": "🧬 Mechanistic Focus",
+                "clinical": "🏥 Clinical Focus"
+            }[x]
+        )
+    
+    with col2:
+        max_papers = st.number_input(
+            "Maximum papers to analyze:",
+            min_value=10,
+            max_value=100,
+            value=30,
+            step=10
+        )
+    
+    run_review = st.button("📚 Generate Literature Review", type="primary", use_container_width=True)
+    
+    if run_review and topic:
+        if not any([os.getenv("OPENAI_API_KEY"), os.getenv("ANTHROPIC_API_KEY")]):
+            st.error("❌ No API keys configured. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env file.")
+            return
+        
+        with st.spinner(f"📚 Reviewing literature on '{topic}'..."):
+            try:
+                agent = LiteratureReviewAgent(model="gpt-4o")
+                result = agent.perform_literature_review(
+                    all_data,
+                    topic=topic,
+                    review_type=review_type,
+                    max_papers=max_papers
+                )
+                
+                if "error" in result:
+                    st.error(f"❌ {result['error']}")
+                    return
+                
+                st.success(f"✅ Review complete! Analyzed {result['papers_analyzed']} papers.")
+                
+                # Statistics
+                stats = result.get("statistics", {})
+                if stats:
+                    st.markdown("### 📊 Statistics")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Papers Analyzed", result['papers_analyzed'])
+                    with col2:
+                        st.metric("Year Range", stats.get('year_range', 'N/A'))
+                    with col3:
+                        entity_counts = stats.get('entity_counts', {})
+                        st.metric("Unique Entities", sum(entity_counts.values()))
+                
+                # Main review
+                st.markdown("---")
+                st.markdown("### 📝 Literature Review")
+                st.markdown(result["review"])
+                
+                # Top entities
+                if stats.get("top_entities"):
+                    st.markdown("---")
+                    st.markdown("### 🔬 Key Entities Mentioned")
+                    top_ents = stats["top_entities"]
+                    cols = st.columns(3)
+                    with cols[0]:
+                        if top_ents.get("lipoproteins"):
+                            st.markdown("**Top Lipoproteins:**")
+                            for name, count in list(top_ents["lipoproteins"].items())[:5]:
+                                st.markdown(f"- {name}: {count}")
+                    with cols[1]:
+                        if top_ents.get("drugs"):
+                            st.markdown("**Top Drugs:**")
+                            for name, count in list(top_ents["drugs"].items())[:5]:
+                                st.markdown(f"- {name}: {count}")
+                    with cols[2]:
+                        if top_ents.get("biomarkers"):
+                            st.markdown("**Top Biomarkers:**")
+                            for name, count in list(top_ents["biomarkers"].items())[:5]:
+                                st.markdown(f"- {name}: {count}")
+                
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+    
+    elif run_review and not topic:
+        st.warning("⚠️ Please enter a research topic.")
+
+
+def _render_research_gaps_section(all_data: List[Dict[str, Any]]):
+    """Render the research gaps identification section"""
+    st.markdown("### 🔍 Research Gap Identification")
+    
+    st.markdown("""
+    Identify understudied areas, methodological gaps, and emerging opportunities in the literature.
+    """)
+    
+    domain = st.selectbox(
+        "Focus Domain:",
+        ["general", "therapeutic", "mechanistic", "clinical", "translational"],
+        format_func=lambda x: {
+            "general": "🌐 General (all areas)",
+            "therapeutic": "💊 Therapeutic Development",
+            "mechanistic": "🧬 Basic Science/Mechanisms",
+            "clinical": "🏥 Clinical Practice",
+            "translational": "🔬 Translational Research"
+        }[x]
+    )
+    
+    run_gaps = st.button("🔍 Identify Research Gaps", type="primary", use_container_width=True)
+    
+    if run_gaps:
+        if not any([os.getenv("OPENAI_API_KEY"), os.getenv("ANTHROPIC_API_KEY")]):
+            st.error("❌ No API keys configured. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env file.")
+            return
+        
+        with st.spinner("🔍 Analyzing literature for research gaps..."):
+            try:
+                agent = LiteratureReviewAgent(model="gpt-4o")
+                result = agent.identify_research_gaps(all_data, domain=domain)
+                
+                if "error" in result:
+                    st.error(f"❌ {result['error']}")
+                    return
+                
+                st.success(f"✅ Analysis complete! Reviewed {result['papers_analyzed']} recent papers.")
+                
+                st.markdown("---")
+                st.markdown("### 🔍 Research Gaps Analysis")
+                st.markdown(result["analysis"])
+                
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+
+
+def _render_treatment_comparison_section(all_data: List[Dict[str, Any]]):
+    """Render the treatment comparison section"""
+    st.markdown("### ⚖️ Treatment Comparison")
+    
+    st.markdown("""
+    Compare two treatment approaches based on published evidence.
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        treatment1 = st.text_input(
+            "Treatment 1:",
+            placeholder="e.g., statins",
+            help="First treatment approach to compare"
+        )
+    
+    with col2:
+        treatment2 = st.text_input(
+            "Treatment 2:",
+            placeholder="e.g., PCSK9 inhibitors",
+            help="Second treatment approach to compare"
+        )
+    
+    run_compare = st.button("⚖️ Compare Treatments", type="primary", use_container_width=True)
+    
+    if run_compare and treatment1 and treatment2:
+        if not any([os.getenv("OPENAI_API_KEY"), os.getenv("ANTHROPIC_API_KEY")]):
+            st.error("❌ No API keys configured. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env file.")
+            return
+        
+        with st.spinner(f"⚖️ Comparing {treatment1} vs {treatment2}..."):
+            try:
+                agent = LiteratureReviewAgent(model="gpt-4o")
+                result = agent.compare_treatment_approaches(all_data, treatment1, treatment2)
+                
+                if "error" in result:
+                    st.error(f"❌ {result['error']}")
+                    return
+                
+                st.success(f"✅ Comparison complete!")
+                
+                # Statistics
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric(f"Papers on {treatment1}", result['treatment1_papers'])
+                with col2:
+                    st.metric(f"Papers on {treatment2}", result['treatment2_papers'])
+                
+                st.markdown("---")
+                st.markdown("### ⚖️ Comparative Analysis")
+                st.markdown(result["comparison"])
+                
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+    
+    elif run_compare and (not treatment1 or not treatment2):
+        st.warning("⚠️ Please enter both treatments to compare.")
