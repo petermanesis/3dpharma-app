@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 
 import ijson
 import openai
+from auth import check_auth
 import urllib.parse
 import urllib.request
 from bs4 import BeautifulSoup
@@ -838,6 +839,7 @@ def display_drug_card(drug_summary: Dict, title: str):
 
 
 def main():
+    check_auth()
     st.set_page_config(
         page_title="Drug Assessment Tool",
         page_icon="💊",
