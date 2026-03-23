@@ -839,13 +839,13 @@ def display_drug_card(drug_summary: Dict, title: str):
 
 
 def main():
-    check_auth()
     st.set_page_config(
         page_title="Drug Assessment Tool",
         page_icon="💊",
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    check_auth()
     
     # Custom CSS
     st.markdown("""

@@ -52,17 +52,37 @@ def _decode(token: str) -> str | None:
 
 
 # ── Store helpers ─────────────────────────────────────────────────────────────
+# On Streamlit Cloud the filesystem is read-only, so we keep first-use timestamps
+# in st.session_state only (resets on server restart, which is acceptable).
+# On a writable server (Render, local) we persist to passkey_store.json.
+
+def _is_writable() -> bool:
+    try:
+        test = STORE_FILE + ".tmp"
+        with open(test, "w") as f:
+            f.write("")
+        os.remove(test)
+        return True
+    except OSError:
+        return False
+
 
 def _load_store() -> dict:
-    if os.path.exists(STORE_FILE):
-        with open(STORE_FILE, "r") as f:
-            return json.load(f)
-    return {}
+    # In-memory cache via session_state (always available)
+    if "_passkey_store" not in st.session_state:
+        if os.path.exists(STORE_FILE):
+            with open(STORE_FILE, "r") as f:
+                st.session_state["_passkey_store"] = json.load(f)
+        else:
+            st.session_state["_passkey_store"] = {}
+    return st.session_state["_passkey_store"]
 
 
 def _save_store(store: dict):
-    with open(STORE_FILE, "w") as f:
-        json.dump(store, f, indent=2)
+    st.session_state["_passkey_store"] = store
+    if _is_writable():
+        with open(STORE_FILE, "w") as f:
+            json.dump(store, f, indent=2)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -119,12 +139,12 @@ def _validate_passkey(token: str) -> tuple[bool, str]:
 
 def check_auth():
     """
-    Call at the top of main(). Blocks with st.stop() until a valid passkey is entered.
+    Call at the top of main(), AFTER st.set_page_config().
+    Blocks with st.stop() until a valid passkey is entered.
     """
     if st.session_state.get("_authenticated"):
         return
 
-    st.set_page_config(page_title="Access Required", page_icon="🔐")
     st.title("🔐 Access Required")
     st.markdown("Please enter your passkey to access this application.")
 
