@@ -142,9 +142,9 @@ class DrugService:
                 data = None
         
         # If no local file, connect directly to Google Drive
-        if data is None:
-            print("No local database found. Connecting to Google Drive...")
-            data = self._load_from_gdrive()
+        #MANP if data is None:
+        #MANP     print("No local database found. Connecting to Google Drive...")
+        #MANP     data = self._load_from_gdrive()
         
         if data:
             self.metadata = data.get('metadata', {})
