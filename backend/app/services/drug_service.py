@@ -22,7 +22,14 @@ from bs4 import BeautifulSoup
 from app.services.severity_classifier import classify_severity_simple, get_severity_emoji
 
 
-DB_CACHE_PATH = '/tmp/drug_database.json'
+import tempfile
+import platform
+
+# Use platform-appropriate temp directory
+if platform.system() == 'Windows':
+    DB_CACHE_PATH = os.path.join(tempfile.gettempdir(), 'drug_database.json')
+else:
+    DB_CACHE_PATH = '/tmp/drug_database.json'
 FULL_DRUG_CACHE_SIZE = 30  # max full drug records kept in memory at once
 
 

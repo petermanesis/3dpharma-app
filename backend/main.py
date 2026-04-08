@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from app.routers import drugs_router, compatibility_router, chat_router, athero_router
+from app.routers import drugs_router, compatibility_router, chat_router, athero_router, passkey_router
 from app.services.drug_service import get_drug_service
 
 
@@ -82,6 +82,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(passkey_router)
 app.include_router(drugs_router)
 app.include_router(compatibility_router)
 app.include_router(chat_router)
@@ -130,5 +131,5 @@ if __name__ == "__main__":
         "main:app",
         host=host,
         port=port,
-        reload=True
+        reload=False
     )
