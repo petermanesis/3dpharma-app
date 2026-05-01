@@ -5,8 +5,9 @@ Main application entry point
 
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -82,6 +83,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global exception handler — ensures CORS headers are present even on 500 errors.
+# Without this, Starlette's CORS middleware may omit headers when the origin is
+# not yet in the allow-list (e.g. during a partial deploy), causing the browser
+# to report "Failed to fetch" instead of the real error.
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin in origins:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    print(f"[ERROR] Unhandled exception on {request.method} {request.url.path}: "
+          f"{type(exc).__name__}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"{type(exc).__name__}: {str(exc)}"},
+        headers=headers,
+    )
+
 
 # Include routers
 app.include_router(passkey_router)
