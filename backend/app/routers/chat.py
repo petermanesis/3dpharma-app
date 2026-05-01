@@ -43,28 +43,30 @@ def process_ai_query(query: str, history: List[Dict[str, str]] = None) -> dict:
             for cat_drug in drugs[:2]:
                 drug_names.append(cat_drug.title())
     
-    # Find specific drug names in query
+    # Find specific drug names in query using the service's search index
     exact_matches = []
-    query_words = query_lower.split()
-    
-    for drug in service.drugs:
-        drug_name = drug.get('name', '')
-        if not drug_name:
+    query_words = [w.strip('.,!?;:()[]{}') for w in query_lower.split() if w.strip('.,!?;:()[]{}')]
+
+    # Check each word (and pairs of words) as a potential drug name
+    for word in query_words:
+        if len(word) < 3:
             continue
-        drug_name_lower = drug_name.lower()
-        
-        for word in query_words:
-            clean_word = word.strip('.,!?;:()[]{}')
-            if clean_word == drug_name_lower:
-                if drug_name not in exact_matches and drug_name not in drug_names:
-                    exact_matches.append(drug_name)
-        
-        if drug_name_lower in query_lower:
-            if drug_name not in exact_matches and drug_name not in drug_names:
-                words_in_drug = drug_name_lower.split()
-                if len(words_in_drug) == 1 or all(w in query_lower for w in words_in_drug):
-                    exact_matches.append(drug_name)
-    
+        match = service.find_drug(word)
+        if match and match['name'] not in exact_matches and match['name'] not in drug_names:
+            exact_matches.append(match['name'])
+
+    # Also try two-word combinations (e.g. "metformin hydrochloride")
+    for i in range(len(query_words) - 1):
+        phrase = f"{query_words[i]} {query_words[i+1]}"
+        match = service.find_drug(phrase)
+        if match and match['name'] not in exact_matches and match['name'] not in drug_names:
+            exact_matches.append(match['name'])
+
+    # Fall back to broader search if no exact hits found yet
+    if not exact_matches and not drug_names:
+        search_results = service.search_drugs(query)
+        exact_matches = search_results[:3]
+
     drug_names = (exact_matches + drug_names)[:3]
     
     # Build context
