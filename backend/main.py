@@ -66,6 +66,8 @@ origins = [
     "http://127.0.0.1:8081",
     "http://127.0.0.1:8082",
     "http://127.0.0.1:8083",
+    # Production (Render)
+    "https://threedpharma-app-frontend.onrender.com",
 ]
 
 # Also allow from environment variable
