@@ -101,9 +101,9 @@ const Index = () => {
               </div>
               <div>
                 <h2 className="text-3xl font-bold gradient-text">Compatibility Analysis</h2>
-                <p className="text-muted-foreground">
+                {/* TEMP <p className="text-muted-foreground">
                   Check drug-drug interactions and 3D printing compatibility
-                </p>
+                </p> */}
               </div>
             </div>
           )}

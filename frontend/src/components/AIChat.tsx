@@ -16,7 +16,7 @@ interface Message {
 const exampleQuestions = [
   "Give me a synopsis of Metformin",
   "Tell me about Aspirin - overview and interactions",
-  "Are Aspirin and Warfarin compatible for 3D printing?",
+  // TEMP "Are Aspirin and Warfarin compatible for 3D printing?",
   "What are the physical properties of Lisinopril?",
 ];
 
@@ -114,9 +114,9 @@ export function AIChat() {
                 <div className="absolute inset-0 rounded-3xl bg-accent/20 blur-2xl -z-10" />
               </div>
               <h3 className="text-2xl font-bold mb-3 gradient-text">AI Research Assistant</h3>
-              <p className="text-muted-foreground max-w-md mx-auto mb-8">
+              {/* TEMP <p className="text-muted-foreground max-w-md mx-auto mb-8">
                 Ask questions about drug compatibility for 3D printing applications.
-              </p>
+              </p> */}
               <div className="flex flex-wrap justify-center gap-3">
                 {exampleQuestions.map((q) => (
                   <button 
