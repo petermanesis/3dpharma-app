@@ -48,7 +48,7 @@ const Index = () => {
               >
                 <Zap className="h-3.5 w-3.5" />
                 <span className="uppercase tracking-[0.2em] text-[10px] font-semibold">
-                  3D Pharmaceutical Research Platform
+                  Pharmaceutical Research Platform
                 </span>
               </motion.div>
               
