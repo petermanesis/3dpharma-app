@@ -48,7 +48,7 @@ const Index = () => {
               >
                 <Zap className="h-3.5 w-3.5" />
                 <span className="uppercase tracking-[0.2em] text-[10px] font-semibold">
-                  Pharmaceutical Research Platform
+                  3D Pharmaceutical Research Platform
                 </span>
               </motion.div>
               
@@ -101,9 +101,9 @@ const Index = () => {
               </div>
               <div>
                 <h2 className="text-3xl font-bold gradient-text">Compatibility Analysis</h2>
-                {/* TEMP <p className="text-muted-foreground">
+                <p className="text-muted-foreground">
                   Check drug-drug interactions and 3D printing compatibility
-                </p> */}
+                </p>
               </div>
             </div>
           )}

@@ -38,13 +38,13 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
           </div>
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              {/* TEMP <h1 className="text-lg font-bold tracking-tight gradient-text">
+              <h1 className="text-lg font-bold tracking-tight gradient-text">
                 DCAS
               </h1>
               <div className="hidden md:flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-full border border-border/50">
                 <Zap className="h-3 w-3 text-primary" />
                 <span>Drug Compatibility Analysis</span>
-              </div> */}
+              </div>
             </div>
           </div>
         </motion.div>

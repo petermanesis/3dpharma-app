@@ -676,7 +676,7 @@ export function CompatibilityCheck() {
           <h3 className="text-2xl font-bold mb-3 gradient-text">Analyze Multi-Drug Compatibility</h3>
           <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
             Select two or more compounds (up to 5) to check <strong className="text-foreground">drug-drug interactions</strong> and 
-            evaluate their compatibility for pharmaceutical formulations. 
+            evaluate their compatibility for 3D printing pharmaceutical formulations. 
             Get severity ratings, interaction details, and recommendations.
           </p>
         </motion.div>
